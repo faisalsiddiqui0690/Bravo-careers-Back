@@ -1,8 +1,8 @@
-const Project = require('./Project');
 const Service = require('./Service');
 const Review = require('./Review');
-const SiteAnalytics = require('./SiteAnalytics');
 const Career = require('./Career');
 const Enquiry = require('./Enquiry');
+const Blog = require('./Blog');
+const News = require('./News');
 
-module.exports = { Project, Service, Review, SiteAnalytics, Career, Enquiry };
+module.exports = { Service, Review, Career, Enquiry, Blog, News };

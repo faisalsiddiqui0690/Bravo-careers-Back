@@ -1,231 +1,159 @@
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { Op } = require('sequelize');
 const { Service } = require('../models');
+const authenticateAdmin = require('../middleware/authenticateAdmin');
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads/services');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'service-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    console.log('📎 Service image upload attempt:', {
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size
-    });
-    
-    // Accept any file that starts with image/ MIME type
-    if (file.mimetype.startsWith('image/')) {
-      console.log('✅ File accepted');
-      return cb(null, true);
-    }
-    
-    // Also check file extension as fallback
-    const allowedExtensions = /\.(jpeg|jpg|jfif|jpe|png|gif|webp|bmp|svg)$/i;
-    if (allowedExtensions.test(file.originalname)) {
-      console.log('✅ File accepted by extension');
-      return cb(null, true);
-    }
-    
-    console.log('❌ File rejected');
-    cb(new Error('Only image files are allowed'));
-  }
-});
-
-/**
- * POST /api/services/upload - Upload service image
- */
-router.post('/upload', upload.single('image'), (req, res) => {
+const router = express.Router();
+const slugify = (value) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 255);
+const toList = (value) => {
+  if (Array.isArray(value)) return value.filter((item) => typeof item === 'string').map((item) => item.trim()).filter(Boolean);
+  if (typeof value !== 'string') return [];
   try {
-    console.log('📤 Service upload endpoint hit!');
-    if (!req.file) {
-      console.log('❌ No file in request');
-      return res.status(400).json({
-        success: false,
-        error: 'No image file provided',
-      });
-    }
-    
-    console.log('✅ File received:', req.file.filename);
-    const imageUrl = `/uploads/services/${req.file.filename}`;
-    res.json({
-      success: true,
-      data: {
-        imageUrl,
-        filename: req.file.filename,
-      },
-    });
-  } catch (error) {
-    console.error('❌ Error uploading service image:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to upload image',
-    });
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? toList(parsed) : [];
+  } catch {
+    return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
   }
-});
+};
 
-console.log('✅ Service upload route registered at POST /api/services/upload');
+const serviceValues = (body, existing = {}) => {
+  const title = typeof body.title === 'string' ? body.title.trim() : existing.title;
+  const description = typeof body.description === 'string' ? body.description.trim() : existing.description;
+  return {
+    icon: typeof body.icon === 'string' ? body.icon.trim() : existing.icon || '',
+    title,
+    description,
+    slug: slugify(typeof body.slug === 'string' && body.slug.trim() ? body.slug : title),
+    image: typeof body.image === 'string' ? body.image.trim() : existing.image || '',
+    imageAlt: typeof body.imageAlt === 'string' ? body.imageAlt.trim() : existing.imageAlt || '',
+    points: body.points !== undefined ? toList(body.points) : existing.points || [],
+    detailIntro: typeof body.detailIntro === 'string' ? body.detailIntro.trim() : existing.detailIntro || '',
+    detailDescription: typeof body.detailDescription === 'string'
+      ? body.detailDescription.trim()
+      : existing.detailDescription || '',
+    outcomes: body.outcomes !== undefined ? toList(body.outcomes) : existing.outcomes || [],
+    isPublished: body.isPublished === undefined
+      ? Boolean(existing.isPublished)
+      : body.isPublished === true || body.isPublished === 'true',
+  };
+};
 
-/**
- * GET /api/services - Get all services
- */
 router.get('/', async (req, res) => {
   try {
     const services = await Service.findAll({
+      where: { isPublished: true, slug: { [Op.ne]: null } },
       order: [['id', 'ASC']],
     });
-    res.json({
-      success: true,
-      data: services,
-    });
+    return res.json({ success: true, data: services });
   } catch (error) {
-    console.error('❌ Error fetching services:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch services',
-    });
+    console.error('Error fetching published services:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch services' });
   }
 });
 
-/**
- * GET /api/services/:id - Get a single service
- */
+router.get('/admin/all', authenticateAdmin, async (req, res) => {
+  try {
+    const services = await Service.findAll({
+      where: { slug: { [Op.ne]: null } },
+      order: [['id', 'ASC']],
+    });
+    return res.json({ success: true, data: services });
+  } catch (error) {
+    console.error('Error fetching admin services:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch services' });
+  }
+});
+
+router.post('/upload', authenticateAdmin, (req, res) => {
+  const upload = require('multer')({
+    storage: require('multer').diskStorage({
+      destination: (request, file, callback) => {
+        const path = require('path');
+        const fs = require('fs');
+        const uploadsDir = path.join(__dirname, '../uploads/services');
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        callback(null, uploadsDir);
+      },
+      filename: (request, file, callback) => {
+        const path = require('path');
+        callback(null, `service-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (request, file, callback) => {
+      if (file.mimetype.startsWith('image/')) return callback(null, true);
+      return callback(new Error('Only image files are allowed'));
+    },
+  }).single('image');
+
+  upload(req, res, (error) => {
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided' });
+    return res.json({
+      success: true,
+      data: { imageUrl: `/uploads/services/${req.file.filename}`, filename: req.file.filename },
+    });
+  });
+});
+
 router.get('/:id', async (req, res) => {
   try {
-    const service = await Service.findByPk(req.params.id);
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        error: 'Service not found',
-      });
-    }
-    res.json({
-      success: true,
-      data: service,
+    const service = await Service.findOne({
+      where: { id: req.params.id, isPublished: true },
     });
+    if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
+    return res.json({ success: true, data: service });
   } catch (error) {
-    console.error('❌ Error fetching service:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch service',
-    });
+    console.error('Error fetching service:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch service' });
   }
 });
 
-/**
- * POST /api/services - Create a new service
- */
-router.post('/', async (req, res) => {
+router.post('/', authenticateAdmin, async (req, res) => {
   try {
-    console.log('📝 Creating service with data:', req.body);
-    const { icon, title, description } = req.body;
-    
-    if (!title || !description) {
-      console.log('❌ Missing required fields');
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields',
-      });
+    const values = serviceValues(req.body);
+    if (!values.title || !values.description) {
+      return res.status(400).json({ success: false, message: 'Title and description are required' });
     }
-    
-    const service = await Service.create({
-      icon: icon || '',
-      title,
-      description,
-    });
-    
-    console.log('✅ Service created successfully:', service.id);
-    res.status(201).json({
-      success: true,
-      data: service,
-    });
+    const service = await Service.create(values);
+    return res.status(201).json({ success: true, data: service });
   } catch (error) {
-    console.error('❌ Error creating service:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create service',
-      details: error.message,
-    });
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, message: 'That service URL is already in use' });
+    }
+    console.error('Error creating service:', error);
+    return res.status(500).json({ success: false, message: 'Failed to create service' });
   }
 });
 
-/**
- * PUT /api/services/:id - Update a service
- */
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateAdmin, async (req, res) => {
   try {
-    const { icon, title, description } = req.body;
-    
     const service = await Service.findByPk(req.params.id);
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        error: 'Service not found',
-      });
+    if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
+    const values = serviceValues(req.body, service);
+    if (!values.title || !values.description) {
+      return res.status(400).json({ success: false, message: 'Title and description are required' });
     }
-    
-    await service.update({
-      icon: icon || service.icon,
-      title: title || service.title,
-      description: description || service.description,
-    });
-    
-    res.json({
-      success: true,
-      data: service,
-    });
+    await service.update(values);
+    return res.json({ success: true, data: service });
   } catch (error) {
-    console.error('❌ Error updating service:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update service',
-    });
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, message: 'That service URL is already in use' });
+    }
+    console.error('Error updating service:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update service' });
   }
 });
 
-/**
- * DELETE /api/services/:id - Delete a service
- */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateAdmin, async (req, res) => {
   try {
     const service = await Service.findByPk(req.params.id);
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        error: 'Service not found',
-      });
-    }
-    
+    if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
     await service.destroy();
-    
-    res.json({
-      success: true,
-      message: 'Service deleted successfully',
-    });
+    return res.json({ success: true, message: 'Service deleted' });
   } catch (error) {
-    console.error('❌ Error deleting service:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete service',
-    });
+    console.error('Error deleting service:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete service' });
   }
 });
 

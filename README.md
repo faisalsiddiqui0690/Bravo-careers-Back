@@ -1,6 +1,6 @@
-# Backend Email Service
+# Bravo Careers API
 
-This directory contains the backend email service for handling contact form submissions.
+This directory contains the Express and MySQL API for Bravo Careers, including contact enquiries and protected website-content administration.
 
 ## Setup
 
@@ -80,6 +80,39 @@ Health check endpoint.
   "message": "Email service is running"
 }
 ```
+
+### Website content
+
+The database migration creates `blogs` and `news` tables and extends the existing
+`services` and `reviews` tables with Bravo Careers publishing fields. Existing
+project records are retained; project routes and management screens are no longer
+registered for the Bravo Careers site.
+
+Public website endpoints return published content only:
+
+- `GET /api/services`
+- `GET /api/reviews`
+- `GET /api/blogs`
+- `GET /api/news`
+- `GET /api/blogs/:slug` and `GET /api/news/:slug`
+
+Admin content endpoints require the bearer token returned by
+`POST /api/v1/admin/auth/login`:
+
+- Services: `GET /api/services/admin/all`, `POST /api/services`,
+  `PUT /api/services/:id`, `DELETE /api/services/:id`
+- Testimonials: `GET /api/reviews/admin/all`, and the corresponding `POST`,
+  `PUT /:id`, and `DELETE /:id` operations
+- Blogs and news: `GET /api/{blogs|news}/admin/all`, and corresponding `POST`,
+  `PUT /:id`, and `DELETE /:id` operations
+
+Content can be saved as a draft or published. The website only exposes published
+records, and the admin UI can edit or remove drafts and published records.
+Testimonials additionally require recorded client permission before they can be
+published; no sample or fabricated testimonial quotes are seeded.
+Run `npm run migrate` to apply the additive schema changes and seed the six
+Bravo Careers services plus starter blog and news content. It does not create
+testimonial quotes or drop the legacy project table or its existing data.
 
 ## How It Works
 
