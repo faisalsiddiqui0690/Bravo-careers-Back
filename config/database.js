@@ -1,8 +1,11 @@
 const { Sequelize } = require('sequelize');
+const path = require('path');
+
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Database configuration from environment variables
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'iptechnologies',
+  process.env.DB_NAME || 'bravo_careers',
   process.env.DB_USER || 'root',
   process.env.DB_PASSWORD || '',
   {

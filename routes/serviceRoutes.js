@@ -64,38 +64,6 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
   }
 });
 
-router.post('/upload', authenticateAdmin, (req, res) => {
-  const upload = require('multer')({
-    storage: require('multer').diskStorage({
-      destination: (request, file, callback) => {
-        const path = require('path');
-        const fs = require('fs');
-        const uploadsDir = path.join(__dirname, '../uploads/services');
-        fs.mkdirSync(uploadsDir, { recursive: true });
-        callback(null, uploadsDir);
-      },
-      filename: (request, file, callback) => {
-        const path = require('path');
-        callback(null, `service-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
-      },
-    }),
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (request, file, callback) => {
-      if (file.mimetype.startsWith('image/')) return callback(null, true);
-      return callback(new Error('Only image files are allowed'));
-    },
-  }).single('image');
-
-  upload(req, res, (error) => {
-    if (error) return res.status(400).json({ success: false, message: error.message });
-    if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided' });
-    return res.json({
-      success: true,
-      data: { imageUrl: `/uploads/services/${req.file.filename}`, filename: req.file.filename },
-    });
-  });
-});
-
 router.get('/:id', async (req, res) => {
   try {
     const service = await Service.findOne({

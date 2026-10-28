@@ -9,10 +9,12 @@ const Enquiry = sequelize.define('Enquiry', {
   subject: { type: DataTypes.STRING(255), allowNull: false },
   message: { type: DataTypes.TEXT,        allowNull: false },
   status:  { type: DataTypes.ENUM('New','Read','Replied','Closed'), defaultValue: 'New' },
-  // If enquiry came from a career application
   careerId:    { type: DataTypes.INTEGER, allowNull: true  },
   careerTitle: { type: DataTypes.STRING(255), allowNull: true },
-  type:        { type: DataTypes.ENUM('General','Career'), defaultValue: 'General' },
+  resourceId:  { type: DataTypes.STRING(255), allowNull: true },
+  resourceTitle: { type: DataTypes.STRING(255), allowNull: true },
+  resourceType: { type: DataTypes.STRING(20), allowNull: true, field: 'resource_type' },
+  type:        { type: DataTypes.ENUM('General','Career','Resource'), defaultValue: 'General' },
 }, {
   tableName: 'enquiries',
   timestamps: true,

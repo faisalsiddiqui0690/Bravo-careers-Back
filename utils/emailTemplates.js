@@ -75,7 +75,7 @@ const createOwnerEmailTemplate = (data) => {
           <tr>
             <td style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e0e0e0;">
               <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px;">This inquiry was submitted through your website's contact form.</p>
-              <p style="margin: 0; color: #999999; font-size: 12px;">© ${new Date().getFullYear()} IP Technologies. All rights reserved.</p>
+              <p style="margin: 0; color: #999999; font-size: 12px;">© ${new Date().getFullYear()} Bravo Careers. All rights reserved.</p>
             </td>
           </tr>
           
@@ -101,7 +101,7 @@ const createUserEmailTemplate = (data) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thank You - IP Technologies</title>
+  <title>Thank You - Bravo Careers</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -126,7 +126,7 @@ const createUserEmailTemplate = (data) => {
               <h2 style="margin: 0 0 15px 0; color: #1a3cff; font-size: 24px; font-weight: 600;">Dear ${name},</h2>
               
               <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 1.6;">
-                Thank you for reaching out to <strong>IP Technologies</strong>. We're delighted to hear from you!
+                Thank you for reaching out to <strong>Bravo Careers</strong>. We're delighted to hear from you!
               </p>
               
               <div style="background-color: #e8f0ff; border-left: 4px solid #1a3cff; padding: 20px; margin: 25px 0; border-radius: 4px;">
@@ -160,7 +160,7 @@ const createUserEmailTemplate = (data) => {
               
               <p style="margin: 20px 0 0 0; color: #333333; font-size: 16px;">
                 Best regards,<br>
-                <strong style="color: #1a3cff; font-size: 18px;">The IP Technologies Team</strong>
+                <strong style="color: #1a3cff; font-size: 18px;">The Bravo Careers Team</strong>
               </p>
             </td>
           </tr>
@@ -169,12 +169,11 @@ const createUserEmailTemplate = (data) => {
           <tr>
             <td style="background-color: #f8f9fa; padding: 25px 30px; border-top: 1px solid #e0e0e0;">
               <div style="text-align: center; margin-bottom: 15px;">
-                <p style="margin: 0 0 5px 0; color: #1a3cff; font-size: 14px; font-weight: 600;">IP Technologies</p>
-                <p style="margin: 0 0 5px 0; color: #666666; font-size: 13px;">hello@iptechnologies.in</p>
+                <p style="margin: 0 0 5px 0; color: #1a3cff; font-size: 14px; font-weight: 600;">Bravo Careers</p>
                 <p style="margin: 0; color: #999999; font-size: 12px;">Gyanpeeth - Campus II, Chhatrapati Sambhajinagar</p>
               </div>
               <p style="margin: 15px 0 0 0; text-align: center; color: #999999; font-size: 12px;">
-                © ${new Date().getFullYear()} IP Technologies. All rights reserved.
+                © ${new Date().getFullYear()} Bravo Careers. All rights reserved.
               </p>
             </td>
           </tr>

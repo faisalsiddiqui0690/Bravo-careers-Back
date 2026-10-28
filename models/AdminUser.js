@@ -40,11 +40,6 @@ const AdminUser = sequelize.define('AdminUser', {
     type: DataTypes.DATE,
     allowNull: true
   },
-  permissions: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: null
-  }
 }, {
   tableName: 'admin_users',
   timestamps: true,

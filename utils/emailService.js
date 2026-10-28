@@ -70,7 +70,7 @@ const sendEmail = async ({ to, subject, html, text = '' }) => {
   }
 
   const mailOptions = {
-    from: `"${process.env.EMAIL_FROM_NAME || 'IP Technologies'}" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    from: `"${process.env.EMAIL_FROM_NAME || 'Bravo Careers'}" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
     to,
     subject,
     html,

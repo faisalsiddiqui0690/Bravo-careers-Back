@@ -15,6 +15,8 @@ const { Blog, News } = require('./models');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const careerRoutes   = require('./routes/careerRoutes');
 const enquiryRoutes  = require('./routes/enquiryRoutes');
+const resourceRoutes = require('./routes/resourceRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const adminManagementRoutes = require('./routes/adminManagementRoutes');
 
 const app = express();
@@ -36,6 +38,8 @@ app.use('/api/blogs', createContentRouter(Blog, 'blogs'));
 app.use('/api/news', createContentRouter(News, 'news', true));
 app.use('/api/careers',   careerRoutes);
 app.use('/api/enquiries', enquiryRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/uploads', uploadRoutes);
 app.use('/api/v1/admin/auth', adminAuthRoutes);
 app.use('/api/v1/admin/manage', adminManagementRoutes);
 

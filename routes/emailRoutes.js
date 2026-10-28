@@ -70,7 +70,7 @@ router.post('/send-email', async (req, res) => {
     const emailPromises = [
       // Email to owner
       sendEmail({
-        to: process.env.OWNER_EMAIL || 'info@iptechnologies.com',
+        to: process.env.OWNER_EMAIL || process.env.SMTP_USER || process.env.EMAIL_USER,
         subject: `📨 New Contact Form Submission - ${templateData.service}`,
         html: ownerHtml,
       }),
@@ -78,7 +78,7 @@ router.post('/send-email', async (req, res) => {
       // Auto-reply email to user
       sendEmail({
         to: templateData.email,
-        subject: 'Thank You for Contacting IP Technologies',
+        subject: 'Thank You for Contacting Bravo Careers',
         html: userHtml,
       }),
     ];

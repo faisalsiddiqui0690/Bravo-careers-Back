@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { Enquiry } = require('../models');
+const { Enquiry, Resource } = require('../models');
+const authenticateAdmin = require('../middleware/authenticateAdmin');
 
 /** GET /api/enquiries — admin, all enquiries */
-router.get('/', async (req, res) => {
+router.get('/', authenticateAdmin, async (req, res) => {
   try {
     const enquiries = await Enquiry.findAll({ order: [['created_at', 'DESC']] });
     res.json({ success: true, data: enquiries });
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
 });
 
 /** GET /api/enquiries/:id */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateAdmin, async (req, res) => {
   try {
     const enquiry = await Enquiry.findByPk(req.params.id);
     if (!enquiry) return res.status(404).json({ success: false, error: 'Enquiry not found' });
@@ -26,11 +27,36 @@ router.get('/:id', async (req, res) => {
 /** POST /api/enquiries — public, submit enquiry or career application */
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, subject, message, careerId, careerTitle, type } = req.body;
+    const { name, email, phone, subject, message, careerId, careerTitle, resourceId, type = 'General' } = req.body;
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ success: false, error: 'name, email, subject and message are required' });
     }
-    const enquiry = await Enquiry.create({ name, email, phone, subject, message, careerId, careerTitle, type: type || 'General' });
+    if (!['General', 'Career', 'Resource'].includes(type)) {
+      return res.status(400).json({ success: false, error: 'type must be General, Career or Resource' });
+    }
+    let resource;
+    if (type === 'Resource') {
+      if (!resourceId) {
+        return res.status(400).json({ success: false, error: 'resourceId is required for resource requests' });
+      }
+      resource = await Resource.findOne({ where: { id: resourceId, isPublished: true } });
+      if (!resource) {
+        return res.status(404).json({ success: false, error: 'The selected resource is no longer available' });
+      }
+    }
+    const enquiry = await Enquiry.create({
+      name,
+      email,
+      phone,
+      subject,
+      message,
+      careerId,
+      careerTitle,
+      resourceId: resource?.id,
+      resourceTitle: resource?.title,
+      resourceType: resource?.type,
+      type,
+    });
     res.status(201).json({ success: true, data: enquiry });
   } catch (err) {
     console.error('❌ Error creating enquiry:', err);
@@ -39,11 +65,15 @@ router.post('/', async (req, res) => {
 });
 
 /** PUT /api/enquiries/:id — admin update status */
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateAdmin, async (req, res) => {
   try {
     const enquiry = await Enquiry.findByPk(req.params.id);
     if (!enquiry) return res.status(404).json({ success: false, error: 'Enquiry not found' });
-    await enquiry.update(req.body);
+    const { status } = req.body;
+    if (!['New', 'Read', 'Replied', 'Closed'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'A valid enquiry status is required' });
+    }
+    await enquiry.update({ status });
     res.json({ success: true, data: enquiry });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to update enquiry' });
@@ -51,7 +81,7 @@ router.put('/:id', async (req, res) => {
 });
 
 /** DELETE /api/enquiries/:id — admin delete */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateAdmin, async (req, res) => {
   try {
     const enquiry = await Enquiry.findByPk(req.params.id);
     if (!enquiry) return res.status(404).json({ success: false, error: 'Enquiry not found' });

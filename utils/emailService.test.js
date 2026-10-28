@@ -41,7 +41,7 @@ const sendEmail = async ({ to, subject, html, text = '' }) => {
   const currentTransporter = await getTransporter();
   
   const mailOptions = {
-    from: `"IP Technologies (Test)" <test@ethereal.email>`,
+    from: `"Bravo Careers (Test)" <test@ethereal.email>`,
     to,
     subject,
     html,

@@ -1,11 +1,10 @@
 const mysql = require('mysql2/promise');
 const { sequelize } = require('../config/database');
 const { DataTypes } = require('sequelize');
-const { Service, Blog, News } = require('../models');
-const AdminUser = require('../models/AdminUser');
-const { Role } = require('../utils/rbac');
+const { Service, Blog, News, Resource } = require('../models');
+const bootstrapSuperAdmin = require('./bootstrapSuperAdmin');
 
-const DB_NAME = process.env.DB_NAME || 'iptechnologies';
+const DB_NAME = process.env.DB_NAME || 'bravo_careers';
 const DB_HOST = process.env.DB_HOST || '127.0.0.1';
 const DB_PORT = parseInt(process.env.DB_PORT) || 3306;
 const DB_USER = process.env.DB_USER || 'root';
@@ -33,26 +32,11 @@ const migrate = async () => {
     console.log('✅ Database tables created successfully!');
 
     // ── Seed Super Admin ──────────────────────────────────────
-    const adminExists = await AdminUser.findOne({ where: { email: 'admin@iptechnologies.in' } });
-    if (!adminExists) {
-      console.log('🌱 Seeding super admin...');
-      await AdminUser.create({
-        email: 'admin@iptechnologies.in',
-        password: 'Admin@123456',
-        firstName: 'Super',
-        lastName: 'Admin',
-        role: Role.SUPER_ADMIN,
-        isActive: true,
-      });
-      console.log('✅ Super admin created!');
-      console.log('   Email   : admin@iptechnologies.in');
-      console.log('   Password: Admin@123456');
-    } else {
-      console.log('ℹ️  Super admin already exists, skipping.');
-    }
+    await bootstrapSuperAdmin();
     
     await seedBravoServices();
     await seedBravoEditorial();
+    await seedBravoResources(Resource);
 
     console.log('\n🎉 Migration completed successfully!');
   } catch (error) {
@@ -145,6 +129,18 @@ const seedBravoEditorial = async () => {
   }
 };
 
+const seedBravoResources = async (ResourceModel) => {
+  const resources = require('./resourceSeed');
+  for (const [type, entries] of Object.entries(resources)) {
+    for (const entry of entries) {
+      await ResourceModel.findOrCreate({
+        where: { id: entry.id },
+        defaults: { ...entry, type, isPublished: true },
+      });
+    }
+  }
+};
+
 const ensureBravoContentColumns = async () => {
   const queryInterface = sequelize.getQueryInterface();
   const additions = {
@@ -162,6 +158,9 @@ const ensureBravoContentColumns = async () => {
       is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       image: { type: DataTypes.STRING(1000), allowNull: true, defaultValue: '' },
       permission_granted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    },
+    enquiries: {
+      resource_type: { type: DataTypes.STRING(20), allowNull: true },
     },
   };
 

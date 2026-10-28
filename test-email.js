@@ -4,15 +4,20 @@ const nodemailer = require('nodemailer');
 
 console.log('🔍 Testing Nodemailer Configuration...\n');
 
+const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+const port = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT) || 465;
+const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
+const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+
 // Check if credentials are set
 console.log('📋 Checking Environment Variables:');
-console.log('   EMAIL_HOST:', process.env.EMAIL_USER ? '✅ Set' : '❌ Not set (using default)');
-console.log('   EMAIL_PORT:', process.env.EMAIL_PORT || '465');
-console.log('   EMAIL_USER:', process.env.EMAIL_USER || '❌ Not configured');
-console.log('   EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ Set (hidden)' : '❌ Not configured');
-console.log('   OWNER_EMAIL:', process.env.OWNER_EMAIL || '❌ Not configured\n');
+console.log('   SMTP_HOST:', host || '❌ Not configured');
+console.log('   SMTP_PORT:', port);
+console.log('   SMTP_USER:', user ? '✅ Set (hidden)' : '❌ Not configured');
+console.log('   SMTP_PASS:', pass ? '✅ Set (hidden)' : '❌ Not configured\n');
 
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+if (!host || !user || !pass) {
   console.log('❌ ERROR: Email credentials not configured in .env file!');
   console.log('   Please update server/.env with your actual email credentials.\n');
   process.exit(1);
@@ -20,12 +25,12 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 
 // Create transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'mail.ipshopy.com',
-  port: parseInt(process.env.EMAIL_PORT) || 465,
-  secure: true, // true for port 465 (SSL)
+  host,
+  port,
+  secure,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user,
+    pass,
   },
   tls: {
     rejectUnauthorized: true
@@ -40,12 +45,9 @@ transporter.verify((error, success) => {
     console.log('❌ SMTP Connection Failed!');
     console.log('   Error:', error.message);
     console.log('\n💡 Troubleshooting:');
-    console.log('   1. Check if EMAIL_USER and EMAIL_PASS are correct in .env');
-    console.log('   2. Verify SMTP settings: host=mail.ipshopy.com, port=465');
-    console.log('   3. Check firewall settings for port 465');
-    console.log('   4. Login to webmail to verify credentials work:');
-    console.log('      https://d12692.bom1.stableserver.net:2096/cpsess6372496181/webmail/jupiter/index.html');
-    console.log('\n   See GMAIL_APP_PASSWORD_GUIDE.md for detailed instructions.\n');
+    console.log('   1. Check SMTP_USER and SMTP_PASS; Gmail requires an app password.');
+    console.log('   2. Verify SMTP_HOST, SMTP_PORT and SMTP_SECURE in .env.');
+    console.log('   3. Confirm the account can sign in to Gmail and SMTP access is enabled.\n');
     process.exit(1);
   } else {
     console.log('✅ SMTP Connection Successful!');
@@ -55,8 +57,8 @@ transporter.verify((error, success) => {
     console.log('📧 Sending test email...\n');
     
     const testEmail = {
-      from: `"IP Technologies Test" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER, // Send to yourself for testing
+      from: `"Bravo Careers Test" <${user}>`,
+      to: user,
       subject: '✅ Nodemailer Test Successful!',
       html: `
         <!DOCTYPE html>
@@ -112,7 +114,7 @@ transporter.verify((error, success) => {
             </div>
             
             <div class="footer">
-              <p>This is an automated test email from IP Technologies Contact Form System</p>
+              <p>This is an automated test email from Bravo Careers Contact Form System</p>
               <p>Generated at: ${new Date().toLocaleString()}</p>
             </div>
           </div>
@@ -141,7 +143,7 @@ Your backend sends TWO emails when someone submits the contact form:
 - Owner Email: ${process.env.OWNER_EMAIL || 'Not configured'} - Receives inquiry details
 - Customer Email: Auto-reply with confirmation message
 
-This is an automated test email from IP Technologies Contact Form System
+This is an automated test email from Bravo Careers Contact Form System
 Generated at: ${new Date().toLocaleString()}
       `
     };

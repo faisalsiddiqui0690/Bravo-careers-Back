@@ -1,41 +1,23 @@
 const AdminUser = require('../models/AdminUser');
 const { sequelize } = require('../config/database');
-const { Role } = require('../utils/rbac');
+const bootstrapSuperAdmin = require('./bootstrapSuperAdmin');
 
 async function createInitialAdmin() {
   try {
+    if (!process.env.SUPER_ADMIN_EMAIL) {
+      throw new Error('Set SUPER_ADMIN_EMAIL before creating the initial admin.');
+    }
+
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
 
-    // Sync the AdminUser model
-    await AdminUser.sync({ force: true });
-    console.log('✅ AdminUser table created');
+    await AdminUser.sync();
 
-    // Check if any admin exists
-    const existingAdmin = await AdminUser.findOne();
-    if (existingAdmin) {
-      console.log('ℹ️  Admin user already exists');
-      return;
-    }
-
-    // Create initial super admin
-    const admin = await AdminUser.create({
-      email: 'admin@iptechnologies.in',
-      password: 'Admin@123456',
-      firstName: 'Super',
-      lastName: 'Admin',
-      role: Role.SUPER_ADMIN,
-      isActive: true
-    });
-
-    console.log('✅ Initial admin created successfully:');
-    console.log('   Email:', admin.email);
-    console.log('   Password: Admin@123456');
-    console.log('   Role:', admin.role);
-    console.log('\n⚠️  Please change the password after first login!');
+    await bootstrapSuperAdmin();
 
   } catch (error) {
     console.error('❌ Error creating admin:', error);
+    process.exitCode = 1;
   } finally {
     await sequelize.close();
   }

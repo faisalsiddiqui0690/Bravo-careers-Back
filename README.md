@@ -16,9 +16,16 @@ cp .env.example .env
 ```
 
 Update the following in `.env`:
-- `EMAIL_USER`: Your Gmail address
-- `EMAIL_PASSWORD`: Your Gmail App Password (not regular password)
+- `SMTP_USER`: Your Gmail address
+- `SMTP_PASS`: Your Gmail App Password (not regular password)
 - `OWNER_EMAIL`: Email address to receive contact form inquiries
+- `DB_NAME`: `bravo_careers`
+- `SUPER_ADMIN_EMAIL`: initial super-admin login email; migration generates a random temporary password
+- `CLOUDINARY_URL`: Cloudinary connection string for admin image uploads
+
+Admin users can upload JPG, PNG, WebP, GIF and AVIF images (up to 5 MB) for
+services, blogs and news. Images are stored in Cloudinary and their secure URLs
+are saved with the content.
 
 ### 3. Generate Gmail App Password
 1. Enable 2-Step Verification in your Google Account
@@ -83,10 +90,9 @@ Health check endpoint.
 
 ### Website content
 
-The database migration creates `blogs` and `news` tables and extends the existing
-`services` and `reviews` tables with Bravo Careers publishing fields. Existing
-project records are retained; project routes and management screens are no longer
-registered for the Bravo Careers site.
+The database migration creates the Bravo Careers schema, including `resources`
+and resource-aware `enquiries`. E-books and free-resource content is seeded from
+the current catalogue and can be managed in the admin area.
 
 Public website endpoints return published content only:
 
@@ -110,9 +116,22 @@ Content can be saved as a draft or published. The website only exposes published
 records, and the admin UI can edit or remove drafts and published records.
 Testimonials additionally require recorded client permission before they can be
 published; no sample or fabricated testimonial quotes are seeded.
-Run `npm run migrate` to apply the additive schema changes and seed the six
-Bravo Careers services plus starter blog and news content. It does not create
-testimonial quotes or drop the legacy project table or its existing data.
+Run `npm run migrate` to create/update the schema and seed Bravo Careers services,
+editorial content and resources. The normal migration does not drop existing data.
+
+To deliberately recreate the `bravo_careers` database, set
+`RESET_DATABASE=bravo_careers` for the command and run `npm run reset-db`.
+This drops all data and tables in that database before migrating it again. It
+refuses to reset any other database name; back up required data first.
+
+When `SUPER_ADMIN_EMAIL` is set and no super admin exists, the migration run
+(including the migration invoked by `npm run dev`) creates the
+`adminbravocareers` super admin with a random temporary password. That password
+is printed once during account creation; save it and change it after signing in.
+Subsequent migrations do not reset or print the password again.
+To change an existing super-admin password, set `ADMIN_NEW_PASSWORD` for a
+single `npm run admin:set-password` invocation. Never commit passwords or leave
+them in shared configuration.
 
 ## How It Works
 
